@@ -260,7 +260,7 @@ abstract class BaseUtils
      *
      * @param array|string $params
      *
-     * @return mixed
+     * @return false|never|string
      *
      * @throws DatabaseException
      */
@@ -309,13 +309,14 @@ abstract class BaseUtils
             return $this->_backup($prefs);
         }
 
+        // @TODO gzencode() requires `ext-zlib`, but _backup() is not implemented in all databases.
         return gzencode($this->_backup($prefs));
     }
 
     /**
      * Platform dependent version of the backup function.
      *
-     * @return mixed
+     * @return false|never|string
      */
     abstract public function _backup(?array $prefs = null);
 }

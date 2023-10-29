@@ -28,6 +28,8 @@ use Throwable;
  * The context array can contain arbitrary data, the only assumption that
  * can be made by implementors is that if an Exception instance is given
  * to produce a stack trace, it MUST be in a key named "exception".
+ *
+ * @see \CodeIgniter\Log\LoggerTest
  */
 class Logger implements LoggerInterface
 {
@@ -92,6 +94,7 @@ class Logger implements LoggerInterface
      * items.
      *
      * @var array
+     * @phpstan-var array<class-string, array<string, list<string>|string|int>>
      */
     protected $handlerConfig = [];
 
@@ -122,7 +125,7 @@ class Logger implements LoggerInterface
 
         // Now convert loggable levels to strings.
         // We only use numbers to make the threshold setting convenient for users.
-        if ($this->loggableLevels) {
+        if ($this->loggableLevels !== []) {
             $temp = [];
 
             foreach ($this->loggableLevels as $level) {
@@ -349,11 +352,9 @@ class Logger implements LoggerInterface
         if (strpos($message, 'env:') !== false) {
             preg_match('/env:[^}]+/', $message, $matches);
 
-            if ($matches) {
-                foreach ($matches as $str) {
-                    $key                 = str_replace('env:', '', $str);
-                    $replace["{{$str}}"] = $_ENV[$key] ?? 'n/a';
-                }
+            foreach ($matches as $str) {
+                $key                 = str_replace('env:', '', $str);
+                $replace["{{$str}}"] = $_ENV[$key] ?? 'n/a';
             }
         }
 

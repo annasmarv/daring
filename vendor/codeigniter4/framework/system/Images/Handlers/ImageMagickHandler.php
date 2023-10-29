@@ -11,6 +11,7 @@
 
 namespace CodeIgniter\Images\Handlers;
 
+use CodeIgniter\I18n\Time;
 use CodeIgniter\Images\Exceptions\ImageException;
 use Config\Images;
 use Exception;
@@ -276,7 +277,7 @@ class ImageMagickHandler extends BaseHandler
             return $this->resource;
         }
 
-        $this->resource = WRITEPATH . 'cache/' . time() . '_' . bin2hex(random_bytes(10)) . '.png';
+        $this->resource = WRITEPATH . 'cache/' . Time::now()->getTimestamp() . '_' . bin2hex(random_bytes(10)) . '.png';
 
         $name = basename($this->resource);
         $path = pathinfo($this->resource, PATHINFO_DIRNAME);
@@ -289,6 +290,8 @@ class ImageMagickHandler extends BaseHandler
     /**
      * Make the image resource object if needed
      *
+     * @return void
+     *
      * @throws Exception
      */
     protected function ensureResource()
@@ -300,6 +303,8 @@ class ImageMagickHandler extends BaseHandler
 
     /**
      * Check if given image format is supported
+     *
+     * @return void
      *
      * @throws ImageException
      */
@@ -317,11 +322,16 @@ class ImageMagickHandler extends BaseHandler
     /**
      * Handler-specific method for overlaying text on an image.
      *
+     * @return void
+     *
      * @throws Exception
      */
     protected function _text(string $text, array $options = [])
     {
-        $cmd = '';
+        $xAxis   = 0;
+        $yAxis   = 0;
+        $gravity = '';
+        $cmd     = '';
 
         // Reverse the vertical offset
         // When the image is positioned at the bottom
@@ -330,11 +340,11 @@ class ImageMagickHandler extends BaseHandler
         // invert the offset. Note: The horizontal
         // offset flips itself automatically
         if ($options['vAlign'] === 'bottom') {
-            $options['vOffset'] = $options['vOffset'] * -1;
+            $options['vOffset'] *= -1;
         }
 
         if ($options['hAlign'] === 'right') {
-            $options['hOffset'] = $options['hOffset'] * -1;
+            $options['hOffset'] *= -1;
         }
 
         // Font

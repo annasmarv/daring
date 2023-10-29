@@ -25,8 +25,10 @@ use CodeIgniter\Test\Mock\MockEmail;
 use CodeIgniter\Test\Mock\MockSession;
 use Config\App;
 use Config\Autoload;
+use Config\Email;
 use Config\Modules;
 use Config\Services;
+use Config\Session;
 use Exception;
 use PHPUnit\Framework\TestCase;
 
@@ -323,7 +325,7 @@ abstract class CIUnitTestCase extends TestCase
      */
     protected function mockEmail()
     {
-        Services::injectMock('email', new MockEmail(config('Email')));
+        Services::injectMock('email', new MockEmail(config(Email::class)));
     }
 
     /**
@@ -333,7 +335,7 @@ abstract class CIUnitTestCase extends TestCase
     {
         $_SESSION = [];
 
-        $config  = config('App');
+        $config  = config(Session::class);
         $session = new MockSession(new ArrayHandler($config, '0.0.0.0'), $config);
 
         Services::injectMock('session', $session);
@@ -350,8 +352,6 @@ abstract class CIUnitTestCase extends TestCase
      * @param string|null $expectedMessage
      *
      * @return bool
-     *
-     * @throws Exception
      */
     public function assertLogged(string $level, $expectedMessage = null)
     {
@@ -364,6 +364,21 @@ abstract class CIUnitTestCase extends TestCase
         ));
 
         return $result;
+    }
+
+    /**
+     * Asserts that there is a log record that contains `$logMessage` in the message.
+     */
+    public function assertLogContains(string $level, string $logMessage, string $message = ''): void
+    {
+        $this->assertTrue(
+            TestLogger::didLog($level, $logMessage, false),
+            $message ?: sprintf(
+                'Failed asserting that logs have a record of message containing "%s" with level "%s".',
+                $logMessage,
+                $level
+            )
+        );
     }
 
     /**

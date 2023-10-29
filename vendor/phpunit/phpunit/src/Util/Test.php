@@ -567,7 +567,7 @@ final class Test
                 $method->getDeclaringClass()->getName(),
                 $method->getName()
             )
-            ->symbolAnnotations()
+                ->symbolAnnotations()
         );
     }
 
@@ -686,7 +686,7 @@ final class Test
             } catch (ReflectionException $e) {
                 throw new Exception(
                     $e->getMessage(),
-                    (int) $e->getCode(),
+                    $e->getCode(),
                     $e
                 );
             }
@@ -716,7 +716,7 @@ final class Test
                     } catch (ReflectionException $e) {
                         throw new Exception(
                             $e->getMessage(),
-                            (int) $e->getCode(),
+                            $e->getCode(),
                             $e
                         );
                     }
@@ -752,7 +752,7 @@ final class Test
                         } catch (ReflectionException $e) {
                             throw new Exception(
                                 $e->getMessage(),
-                                (int) $e->getCode(),
+                                $e->getCode(),
                                 $e
                             );
                         }
@@ -778,7 +778,7 @@ final class Test
                         } catch (ReflectionException $e) {
                             throw new Exception(
                                 $e->getMessage(),
-                                (int) $e->getCode(),
+                                $e->getCode(),
                                 $e
                             );
                         }
@@ -823,7 +823,7 @@ final class Test
                 } catch (ReflectionException $e) {
                     throw new Exception(
                         $e->getMessage(),
-                        (int) $e->getCode(),
+                        $e->getCode(),
                         $e
                     );
                 }

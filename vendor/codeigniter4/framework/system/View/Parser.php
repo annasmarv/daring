@@ -19,6 +19,11 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Class for parsing pseudo-vars
+ *
+ * @phpstan-type ParserCallable (callable(mixed): mixed)
+ * @phpstan-type ParserCallableString (callable(mixed): mixed)&string
+ *
+ * @see \CodeIgniter\View\ParserTest
  */
 class Parser extends View
 {
@@ -58,7 +63,8 @@ class Parser extends View
     /**
      * Stores any plugins registered at run-time.
      *
-     * @var array
+     * @var array<string, array<string>|callable|string>
+     * @phpstan-var array<string, array<ParserCallableString>|ParserCallableString|ParserCallable>
      */
     protected $plugins = [];
 
@@ -78,7 +84,7 @@ class Parser extends View
     public function __construct(ViewConfig $config, ?string $viewPath = null, $loader = null, ?bool $debug = null, ?LoggerInterface $logger = null)
     {
         // Ensure user plugins override core plugins.
-        $this->plugins = $config->plugins ?? [];
+        $this->plugins = $config->plugins;
 
         parent::__construct($config, $viewPath, $loader, $debug, $logger);
     }
@@ -257,7 +263,9 @@ class Parser extends View
      */
     protected function parseSingle(string $key, string $val): array
     {
-        $pattern = '#' . $this->leftDelimiter . '!?\s*' . preg_quote($key, '#') . '(?(?=\s*\|\s*)(\s*\|*\s*([|\w<>=\(\),:.\-\s\+\\\\/]+)*\s*))(\s*)!?' . $this->rightDelimiter . '#ms';
+        $pattern = '#' . $this->leftDelimiter . '!?\s*' . preg_quote($key, '#')
+            . '(?(?=\s*\|\s*)(\s*\|*\s*([|\w<>=\(\),:.\-\s\+\\\\/]+)*\s*))(\s*)!?'
+            . $this->rightDelimiter . '#ums';
 
         return [$pattern => $val];
     }
@@ -277,7 +285,7 @@ class Parser extends View
         // have something to loop over.
         preg_match_all(
             '#' . $this->leftDelimiter . '\s*' . preg_quote($variable, '#') . '\s*' . $this->rightDelimiter . '(.+?)' .
-            $this->leftDelimiter . '\s*/' . preg_quote($variable, '#') . '\s*' . $this->rightDelimiter . '#s',
+            $this->leftDelimiter . '\s*/' . preg_quote($variable, '#') . '\s*' . $this->rightDelimiter . '#us',
             $template,
             $matches,
             PREG_SET_ORDER
@@ -329,7 +337,7 @@ class Parser extends View
                         $val = 'Resource';
                     }
 
-                    $temp['#' . $this->leftDelimiter . '!?\s*' . preg_quote($key, '#') . '(?(?=\s*\|\s*)(\s*\|*\s*([|\w<>=\(\),:.\-\s\+\\\\/]+)*\s*))(\s*)!?' . $this->rightDelimiter . '#s'] = $val;
+                    $temp['#' . $this->leftDelimiter . '!?\s*' . preg_quote($key, '#') . '(?(?=\s*\|\s*)(\s*\|*\s*([|\w<>=\(\),:.\-\s\+\\\\/]+)*\s*))(\s*)!?' . $this->rightDelimiter . '#us'] = $val;
                 }
 
                 // Now replace our placeholders with the new content.
@@ -342,7 +350,7 @@ class Parser extends View
 
             $escapedMatch = preg_quote($match[0], '#');
 
-            $replace['#' . $escapedMatch . '#s'] = $str;
+            $replace['#' . $escapedMatch . '#us'] = $str;
         }
 
         return $replace;
@@ -355,7 +363,7 @@ class Parser extends View
      */
     protected function parseComments(string $template): string
     {
-        return preg_replace('/\{#.*?#\}/s', '', $template);
+        return preg_replace('/\{#.*?#\}/us', '', $template);
     }
 
     /**
@@ -364,7 +372,7 @@ class Parser extends View
      */
     protected function extractNoparse(string $template): string
     {
-        $pattern = '/\{\s*noparse\s*\}(.*?)\{\s*\/noparse\s*\}/ms';
+        $pattern = '/\{\s*noparse\s*\}(.*?)\{\s*\/noparse\s*\}/ums';
 
         /*
          * $matches[][0] is the raw match
@@ -413,7 +421,7 @@ class Parser extends View
             . $leftDelimiter
             . '\s*(if|elseif)\s*((?:\()?(.*?)(?:\))?)\s*'
             . $rightDelimiter
-            . '/ms';
+            . '/ums';
 
         /*
          * For each match:
@@ -433,12 +441,12 @@ class Parser extends View
         }
 
         $template = preg_replace(
-            '/' . $leftDelimiter . '\s*else\s*' . $rightDelimiter . '/ms',
+            '/' . $leftDelimiter . '\s*else\s*' . $rightDelimiter . '/ums',
             '<?php else: ?>',
             $template
         );
         $template = preg_replace(
-            '/' . $leftDelimiter . '\s*endif\s*' . $rightDelimiter . '/ms',
+            '/' . $leftDelimiter . '\s*endif\s*' . $rightDelimiter . '/ums',
             '<?php endif; ?>',
             $template
         );
@@ -506,7 +514,10 @@ class Parser extends View
         // Replace the content in the template
         return preg_replace_callback($pattern, function ($matches) use ($content, $escape) {
             // Check for {! !} syntax to not escape this one.
-            if (strpos($matches[0], '{!') === 0 && substr($matches[0], -2) === '!}') {
+            if (
+                strpos($matches[0], $this->leftDelimiter . '!') === 0
+                && substr($matches[0], -1 - strlen($this->rightDelimiter)) === '!' . $this->rightDelimiter
+            ) {
                 $escape = false;
             }
 
@@ -559,7 +570,7 @@ class Parser extends View
             $escape = false;
         }
         // If no `esc` filter is found, then we'll need to add one.
-        elseif (! preg_match('/\s+esc/', $key)) {
+        elseif (! preg_match('/\s+esc/u', $key)) {
             $escape = 'html';
         }
 
@@ -575,7 +586,7 @@ class Parser extends View
         // Determine the requested filters
         foreach ($filters as $filter) {
             // Grab any parameter we might need to send
-            preg_match('/\([\w<>=\/\\\,:.\-\s\+]+\)/', $filter, $param);
+            preg_match('/\([\w<>=\/\\\,:.\-\s\+]+\)/u', $filter, $param);
 
             // Remove the () and spaces to we have just the parameter left
             $param = ! empty($param) ? trim($param[0], '() ') : null;
@@ -623,8 +634,8 @@ class Parser extends View
 
             // See https://regex101.com/r/BCBBKB/1
             $pattern = $isPair
-                ? '#\{\+\s*' . $plugin . '([\w=\-_:\+\s\(\)/"@.]*)?\s*\+\}(.+?)\{\+\s*/' . $plugin . '\s*\+\}#ims'
-                : '#\{\+\s*' . $plugin . '([\w=\-_:\+\s\(\)/"@.]*)?\s*\+\}#ims';
+                ? '#\{\+\s*' . $plugin . '([\w=\-_:\+\s\(\)/"@.]*)?\s*\+\}(.+?)\{\+\s*/' . $plugin . '\s*\+\}#uims'
+                : '#\{\+\s*' . $plugin . '([\w=\-_:\+\s\(\)/"@.]*)?\s*\+\}#uims';
 
             /**
              * Match tag pairs
@@ -641,7 +652,7 @@ class Parser extends View
             foreach ($matches as $match) {
                 $params = [];
 
-                preg_match_all('/([\w-]+=\"[^"]+\")|([\w-]+=[^\"\s=]+)|(\"[^"]+\")|(\S+)/', trim($match[1]), $matchesParams);
+                preg_match_all('/([\w-]+=\"[^"]+\")|([\w-]+=[^\"\s=]+)|(\"[^"]+\")|(\S+)/u', trim($match[1]), $matchesParams);
 
                 foreach ($matchesParams[0] as $item) {
                     $keyVal = explode('=', $item);

@@ -84,10 +84,8 @@ use SebastianBergmann\Timer\Timer;
  */
 final class TestRunner extends BaseTestRunner
 {
-    public const SUCCESS_EXIT = 0;
-
-    public const FAILURE_EXIT = 1;
-
+    public const SUCCESS_EXIT   = 0;
+    public const FAILURE_EXIT   = 1;
     public const EXCEPTION_EXIT = 2;
 
     /**
@@ -296,7 +294,7 @@ final class TestRunner extends BaseTestRunner
                     } catch (ReflectionException $e) {
                         throw new Exception(
                             $e->getMessage(),
-                            (int) $e->getCode(),
+                            $e->getCode(),
                             $e
                         );
                     }
@@ -1073,7 +1071,7 @@ final class TestRunner extends BaseTestRunner
                 } catch (ReflectionException $e) {
                     throw new Exception(
                         $e->getMessage(),
-                        (int) $e->getCode(),
+                        $e->getCode(),
                         $e
                     );
                 }
@@ -1121,7 +1119,7 @@ final class TestRunner extends BaseTestRunner
                 } catch (ReflectionException $e) {
                     throw new Exception(
                         $e->getMessage(),
-                        (int) $e->getCode(),
+                        $e->getCode(),
                         $e
                     );
                 }
